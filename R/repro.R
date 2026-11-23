@@ -39,6 +39,16 @@
   run_id
 }
 
+# --- Make a run ID (to know it before rendering; pass it as run_id) (REPRODUCIBILITY.md §2) ---
+repro_new_run_id <- function(name) {
+  if (length(name) != 1L || !is.character(name) || !nzchar(name) ||
+        grepl("/", name, fixed = TRUE)) {
+    stop("name is used as the prefix of the run ID and the record file names, ",
+         "so use one name without / (see docs/REPRODUCIBILITY.md §2)", call. = FALSE)
+  }
+  .repro_new_run_id(name, repro_settings()$repro_dir)
+}
+
 # --- Read YAML as UTF-8 without relying on the locale (REPRODUCIBILITY.md §4) ---
 repro_read_yaml <- function(path) {
   text <- rawToChar(readBin(path, what = "raw", n = file.info(path)$size))
@@ -242,7 +252,7 @@ repro_write_csv <- function(table, path, ...) {
 }
 
 # --- Start the record (REPRODUCIBILITY.md §2) ---
-repro_run <- function(cfg, inputs = NULL) {
+repro_run <- function(cfg, inputs = NULL, run_id = NULL) {
   .repro_check_lock_versions()
   settings <- repro_settings()
   tag <- cfg$experiment_name
@@ -257,14 +267,15 @@ repro_run <- function(cfg, inputs = NULL) {
   }
   notebook <- if (isNamespaceLoaded("knitr")) knitr::current_input()
   label <- if (length(notebook) == 1L) tools::file_path_sans_ext(basename(notebook)) else tag
-  run_id <- Sys.getenv("REPRO_RUN_ID", unset = "")
+  given_by <- if (length(run_id) == 1L && nzchar(run_id)) "run_id" else "REPRO_RUN_ID"
+  if (identical(given_by, "REPRO_RUN_ID")) run_id <- Sys.getenv("REPRO_RUN_ID", unset = "")
   if (!nzchar(run_id)) {
     run_id <- .repro_new_run_id(label, settings$repro_dir)
   } else if (grepl("/", run_id, fixed = TRUE)) {
-    stop("REPRO_RUN_ID is used as the prefix of the record file names, so use a name without /",
+    stop(given_by, " is used as the prefix of the record file names, so use a name without /",
          " (see docs/REPRODUCIBILITY.md §2)", call. = FALSE)
   } else if (file.exists(file.path(settings$repro_dir, run_id, paste0(run_id, "_run.json")))) {
-    stop("A record for REPRO_RUN_ID=", run_id, " already exists. Call repro_run() only",
+    stop("A record for ", given_by, "=", run_id, " already exists. Call repro_run() only",
          " once per render (see docs/REPRODUCIBILITY.md §2)", call. = FALSE)
   }
   state <- list(

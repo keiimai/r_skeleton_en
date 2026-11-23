@@ -455,3 +455,20 @@ test_that("renv.lock match records SHA-256; wrong/missing version stops, no writ
   file.create("outputs")
   expect_error(suppressWarnings(repro_run(cfg)), "cannot open", fixed = TRUE)
 })
+
+# --- run_id argument before REPRO_RUN_ID; repro_new_run_id() (REPRODUCIBILITY.md §2) ---
+test_that("run_id comes before REPRO_RUN_ID; repro_new_run_id makes one", {
+  cfg <- local_repro_project()
+  run_id <- repro_new_run_id("unit")
+  expect_match(run_id, "^[0-9]{8}_[0-9]{6}_unit_[0-9]{4}$")
+  withr::local_envvar(REPRO_RUN_ID = "from_env_0000")
+  expect_equal(repro_finish(repro_run(cfg, run_id = run_id))$run_id, run_id)
+  expect_error(repro_run(cfg, run_id = run_id),
+               paste0("A record for run_id=", run_id, " already exists"), fixed = TRUE)
+  expect_error(repro_run(cfg, run_id = "a/b"),
+               "run_id is used as the prefix of the record file names", fixed = TRUE)
+  expect_equal(repro_finish(repro_run(cfg))$run_id, "from_env_0000")
+  for (name in list("", "a/b", c("a", "b"), 1)) {
+    expect_error(repro_new_run_id(name), "so use one name without /", fixed = TRUE)
+  }
+})
