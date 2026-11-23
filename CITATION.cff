@@ -1,0 +1,20 @@
+# --- Citation information (README.md "Contents") ---
+
+cff-version: 1.2.0
+title: "Framework for R analysis projects"
+message: "If you publish results obtained with this template, please cite it using the information below."
+type: software
+authors:
+  - family-names: "Imai"
+    given-names: "Kei"
+    email: "keiimai1220@gmail.com"
+    affiliation: "The University of Tokyo, Japan"
+abstract: >-
+  A template for starting research projects.
+  It holds the directory structure, the license, record templates (the record of decisions, citation information, where data goes) and a reproducibility recording layer. For each run, the recording layer keeps the run_id, the SHA-256 of the files read, the git commit, a snapshot of the runtime environment, the settings used, the SHA-256 of the outputs, and a ledger of all runs. It has no runtime environment and does not depend on the R version. No analysis code is bundled.
+license: MIT
+version: 0.1.0
+date-released: "2026-11-20"
+keywords:
+  - reproducible research
+  - R

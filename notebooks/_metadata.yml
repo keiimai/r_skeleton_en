@@ -1,0 +1,49 @@
+# --- Shared Quarto settings (they apply to the .qmd files directly in this folder) (REPRODUCIBILITY.md §1) ---
+
+# --- Information shown around the title (author, date, language, run ID. The author is read from _project_author.yml) (REPRODUCIBILITY.md §1) ---
+metadata-files:
+  - _project_author.yml
+date: today
+date-modified: last-modified
+date-format: "YYYY-MM-DD"
+lang: en
+description: 'Run ID: {{< env REPRO_RUN_ID "shown when rendered with repro_render()" >}}'
+title-block-banner: true
+
+# --- HTML format (self-contained in one file, code folded) (REPRODUCIBILITY.md §1) ---
+format:
+  html:
+    css: styles.css
+    theme:
+      light: cosmo
+      dark: darkly
+    page-layout: full
+    fontsize: 1.02em
+    linestretch: 1.6
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    smooth-scroll: true
+    anchor-sections: true
+    code-fold: true
+    code-summary: "Show code"
+    code-copy: hover
+    code-tools: true
+    code-line-numbers: true
+    code-overflow: wrap
+    df-print: paged
+    html-math-method: mathml
+    embed-resources: true
+    lightbox: true
+    fig-width: 9
+    fig-height: 6
+    fig-dpi: 200
+    fig-align: center
+    fig-responsive: true
+
+# --- Show chunk warnings and messages, and stop rendering on an error (REPRODUCIBILITY.md §1) ---
+execute:
+  warning: true
+  message: true
+  error: false

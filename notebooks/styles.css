@@ -1,0 +1,38 @@
+/* --- Look of the report HTML (REPRODUCIBILITY.md §1) --- */
+
+/* --- Body font and letter spacing (REPRODUCIBILITY.md §1) --- */
+body {
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* --- Heading weight, and the space above and the underline of h2 (REPRODUCIBILITY.md §1) --- */
+h1, h2, h3, h4 { font-weight: 600; letter-spacing: 0.02em; }
+h2 { margin-top: 2.2em; border-bottom: 1px solid rgba(128, 128, 128, 0.25); padding-bottom: 0.3em; }
+
+/* --- Table font size, the line under the header, and stripes (REPRODUCIBILITY.md §1) --- */
+table { font-size: 0.92em; }
+.table thead th { border-bottom: 2px solid rgba(128, 128, 128, 0.4); }
+table:not(.table-striped) tbody tr:nth-child(even) { background: rgba(128, 128, 128, 0.06); }
+
+/* --- Code font and size (REPRODUCIBILITY.md §1) --- */
+pre, code {
+  font-family: "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.88em;
+}
+
+/* --- Math font (REPRODUCIBILITY.md §1) --- */
+math { font-family: "STIX Two Math", "Cambria Math", math; }
+
+/* --- Make block quotes (> ...) stand out as notes (REPRODUCIBILITY.md §1) --- */
+.blockquote {
+  border-left: 4px solid #c0392b;
+  background: rgba(192, 57, 43, 0.06);
+  padding: 0.6em 1em;
+  margin: 1.2em 0;
+  color: inherit;
+}
+
+/* --- Scroll long output (REPRODUCIBILITY.md §1) --- */
+.cell-output-stdout pre { max-height: 28em; overflow-y: auto; }

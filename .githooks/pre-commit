@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+# --- Pre-commit checks (CHECKS.md §1) ---
+
+# --- Stop on undefined variables, and make a failure inside a pipe fail the pipe (CHECKS.md §1) ---
+set -uo pipefail
+
+# --- Move to the repository root (CHECKS.md §1) ---
+root="$(git rev-parse --show-toplevel)" || exit 1
+cd "$root" || exit 1
+
+# --- Check the staged files, or all tracked files (--all) (CHECKS.md §1) ---
+mode=staged
+[ "${1:-}" = "--all" ] && mode=all
+
+# --- Collect problems and stop once at the end (skipped checks are reported without stopping) (CHECKS.md §1) ---
+fail=0
+ng() { printf '\033[31m[pre-commit]\033[0m %s\n' "$1" >&2; fail=1; }
+warn() { printf '\033[33m[pre-commit]\033[0m %s\n' "$1" >&2; }
+finish() {
+  if [ "$fail" -ne 0 ]; then
+    [ "$mode" = all ] && echo "[pre-commit] Tracked files have problems. Fix them as described above." >&2 \
+      || echo "[pre-commit] Commit stopped. Fix the problems above, git add, then commit again." >&2
+    exit 1
+  fi
+  exit 0
+}
+
+# --- 1. Whether renv.lock at the root is in the commit (CHECKS.md §1) ---
+if [ -f renv.lock ] && ! git ls-files --error-unmatch renv.lock >/dev/null 2>&1; then
+  ng "renv.lock is at the root but not in the commit. Run git add renv.lock (the recording layer checks package versions against it)."
+fi
+
+# --- List of files to check (CHECKS.md §1) ---
+files=()
+if [ "$mode" = all ]; then
+  while IFS= read -r -d '' f; do files+=("$f"); done < <(git ls-files -z)
+else
+  while IFS= read -r -d '' f; do files+=("$f"); done \
+    < <(git diff --cached --name-only --diff-filter=ACMRT -z)
+fi
+if [ "${#files[@]}" -eq 0 ]; then
+  finish
+fi
+
+# --- 2. Real data under data/ (CHECKS.md §1) ---
+blocked=()
+for f in "${files[@]}"; do
+  case "$f" in
+    data/README.md | data/.gitkeep | data/*/.gitkeep) ;;
+    data/*) blocked+=("$f") ;;
+  esac
+done
+if [ "${#blocked[@]}" -gt 0 ]; then
+  ng "Real data under data/ is in Git:"
+  printf '        %s\n' "${blocked[@]}" >&2
+  echo "        The data itself is not tracked. Files passed to the inputs of repro_run() keep their SHA-256 in the run record" >&2
+  echo "        (outputs/repro/<run_id>/<run_id>_run.json). To stop tracking (your local files are not deleted):" >&2
+  printf '          git rm --cached' >&2
+  printf " '%s'" "${blocked[@]}" >&2
+  printf '\n' >&2
+fi
+
+# --- 3. Outputs under outputs/ and models/ (CHECKS.md §1) ---
+produced=()
+for f in "${files[@]}"; do
+  case "$f" in
+    outputs/.gitkeep | outputs/*/.gitkeep | models/.gitkeep) ;;
+    outputs/* | models/*) produced+=("$f") ;;
+  esac
+done
+if [ "${#produced[@]}" -gt 0 ]; then
+  ng "Outputs under outputs/ or models/ are in Git:"
+  printf '        %s\n' "${produced[@]}" >&2
+  echo "        Outputs are not tracked. Files put in state\$artifacts keep their SHA-256 in the run record. To stop tracking (your local files are not deleted):" >&2
+  printf '          git rm --cached' >&2
+  printf " '%s'" "${produced[@]}" >&2
+  printf '\n' >&2
+fi
+
+# --- 4. .env files that hold secrets (CHECKS.md §1) ---
+env_files=()
+for f in "${files[@]}"; do
+  case "${f##*/}" in
+    .env.example) ;;
+    .env | .env.* | *.env) env_files+=("$f") ;;
+  esac
+done
+if [ "${#env_files[@]}" -gt 0 ]; then
+  ng "A file that holds secrets (.env) is in Git:"
+  printf '        %s\n' "${env_files[@]}" >&2
+  echo "        .env is not tracked by Git. To stop tracking (your local files are not deleted):" >&2
+  printf '          git rm --cached' >&2
+  printf " '%s'" "${env_files[@]}" >&2
+  printf '\n' >&2
+  echo "        If already pushed, treat the tokens and passwords in it as leaked and revoke them." >&2
+fi
+
+# --- 5. Files in data formats outside data/ (CHECKS.md §1) ---
+data_extensions=" csv csv2 csvy tsv psv dat dif fwf rec mtp syd arff dbf dump xlsx xls xlsm xlsb xltx xltm ods fods numbers jmp sas7bdat xpt sav zsav por dta rds rda rdata qs2 fst feather parquet arrow pzfx mat wf1 pkl pickle joblib npy npz h5 hdf5 sqlite sqlite3 db accdb mdb zip gz gzip bz2 bzip2 tar tgz tbz2 "
+outside=()
+for f in "${files[@]}"; do
+  case "$f" in data/* | outputs/* | models/* | docs/definition/* | configs/* | tests/testthat/*) continue ;; esac
+  name="${f##*/}"
+  case "$name" in *.*) ;; *) continue ;; esac
+  extension="$(printf '%s' "${name##*.}" | tr '[:upper:]' '[:lower:]')"
+  case "$data_extensions" in *" ${extension} "*) outside+=("$f") ;; esac
+done
+if [ "${#outside[@]}" -gt 0 ]; then
+  ng "There are files in data formats outside data/ (they are allowed only in docs/definition/, configs/ and tests/testthat/):"
+  printf '        %s\n' "${outside[@]}" >&2
+  echo "        Data goes in data/ (not tracked by Git). To stop tracking (your local files are not deleted):" >&2
+  printf '          git rm --cached' >&2
+  printf " '%s'" "${outside[@]}" >&2
+  printf '\n' >&2
+fi
+
+# --- 6. Files that .gitignore excludes but were added with git add -f (CHECKS.md §1) ---
+forced=()
+while IFS= read -r -d '' f; do
+  case "$f" in data/* | outputs/* | models/*) continue ;; esac
+  case "${f##*/}" in .env | .env.* | *.env) continue ;; esac
+  extension="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
+  case "$data_extensions" in *" ${extension} "*) continue ;; esac
+  forced+=("$f")
+done < <(printf '%s\0' "${files[@]}" | git -c core.excludesFile=/dev/null check-ignore --no-index --stdin -z)
+if [ "${#forced[@]}" -gt 0 ]; then
+  ng "Files that .gitignore excludes were added to Git with git add -f:"
+  printf '        %s\n' "${forced[@]}" >&2
+  echo "        Rendered documents and figures, R history, keys and so on are not tracked. To stop tracking (your local files are not deleted):" >&2
+  printf '          git rm --cached' >&2
+  printf " '%s'" "${forced[@]}" >&2
+  printf '\n' >&2
+fi
+
+# --- 7. File or folder names that differ only in case (CHECKS.md §1) ---
+dup="$(git ls-files -z | tr '\0' '\n' | awk -F/ '{p=$1; print p; for (i=2;i<=NF;i++) {p=p"/"$i; print p}}' | sort -u | tr '[:upper:]' '[:lower:]' | sort | uniq -d)"
+if [ -n "$dup" ]; then
+  ng "There are file or folder names that differ only in case (on macOS and Windows they collide as the same name):"
+  printf '        %s\n' "$dup" >&2
+fi
+
+# --- 8. Conflict markers (only during a merge, rebase, cherry-pick or revert) (CHECKS.md §1) ---
+in_conflict=0
+for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply; do
+  [ -e "$(git rev-parse --git-path "$state")" ] && in_conflict=1
+done
+if [ "$in_conflict" -eq 1 ]; then
+  for f in "${files[@]}"; do
+    if git grep --cached -I -q -E '^(<{7} |={7}$|>{7} )' -- ":(literal)$f"; then
+      ng "$f: conflict markers (<<<<<<< / ======= / >>>>>>>) remain"
+    fi
+  done
+fi
+
+# --- 9. Write the content to check to a temporary folder ($TMPDIR) (CHECKS.md §1) ---
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/precommit.XXXXXX")" || exit 1
+trap 'rm -rf "$tmp"' EXIT
+list="$tmp/files"
+printf '%s\n' "${files[@]}" > "$list"
+if [ "$mode" = all ]; then
+  content_root="$root"
+else
+  content_root="$tmp/index"
+  mkdir -p "$content_root"
+  if ! printf '%s\0' "${files[@]}" | git checkout-index --prefix="$content_root/" -z --stdin; then
+    ng "Could not write out the staged content (git checkout-index failed). Stopping because nothing can be checked."
+    finish
+  fi
+fi
+
+# --- Run the R checks with the local Rscript (add places to look for Rscript to PATH) (CHECKS.md §1) ---
+PATH="$PATH:/usr/local/bin:/opt/homebrew/bin:/Library/Frameworks/R.framework/Resources/bin"
+rscript="$(command -v Rscript || true)"
+if [ -z "$rscript" ]; then
+  for candidate in "/c/Program Files/R"/R-*/bin/Rscript.exe; do
+    [ -x "$candidate" ] && rscript="$candidate"
+  done
+fi
+
+# --- Without Rscript, skip the R checks and say so (problems found above still stop the commit) (CHECKS.md §1) ---
+if [ -z "$rscript" ]; then
+  warn "Rscript not found, so the R checks were skipped (files over 2 MB, private keys, tokens, secret-looking values, syntax, trailing whitespace)."
+else
+  "$rscript" --vanilla tools/precommit_checks.R "$content_root" "$root" "$list" || fail=1
+fi
+
+# --- Stop the commit if there are problems (CHECKS.md §1) ---
+finish

@@ -1,0 +1,30 @@
+# --- Editor formatting rules (README.md "Contents") ---
+
+# --- Do not read .editorconfig files in parent folders (README.md "Contents") ---
+root = true
+
+# --- Formatting for all files (README.md "Contents") ---
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# --- Keep trailing whitespace in Markdown (README.md "Contents") ---
+[*.md]
+trim_trailing_whitespace = false
+
+# --- Keep trailing whitespace in tabular data (README.md "Contents") ---
+[*.{csv,csv2,csvy,tsv,psv,dat,fwf}]
+trim_trailing_whitespace = false
+
+# --- Do not apply formatting rules to received data (README.md "Contents") ---
+[data/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset

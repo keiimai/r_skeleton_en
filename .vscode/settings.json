@@ -1,0 +1,5 @@
+// --- Do not let the R extension start the language server or prompt you to install it (README.md "Contents") ---
+{
+    "r.lsp.enabled": false,
+    "r.lsp.promptToInstall": false
+}
