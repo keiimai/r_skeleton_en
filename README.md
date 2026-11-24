@@ -48,7 +48,7 @@ How to use the folders inside `data/`: see [`data/README.md`](data/README.md).
 | `.env.example` | An example of how to write `.env` (`setup.R` copies it to `.env`). The time zone of the records is decided by `TZ` in `.env` (not tracked by Git) (see [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) §2) |
 | `notebooks/README.md`, `_metadata.yml`, `_project_author.yml`, `styles.css` | How to write notebooks, and the HTML format (see [`notebooks/README.md`](notebooks/README.md)) |
 | `.gitignore` | Tracks only what people write ([`.gitignore` documentation](https://git-scm.com/docs/gitignore)). Excludes secrets (`.env`, keys), data, outputs and data formats (CSV, Excel, SPSS, Stata and so on; CSV files in `docs/definition/` are tracked). The `*.key` rule for keys also excludes Keynote slides, so export slides to PDF or similar before sharing them |
-| `.editorconfig` | Rules for indentation, line endings and character encoding ([EditorConfig](https://editorconfig.org/)) |
+| `.editorconfig` | Rules for indentation, line endings and character encoding ([EditorConfig](https://editorconfig.org/)). Add rules for new file types under the heading "Formatting the project adds" (a later section overrides an earlier one, so keep the `[data/**]` section last) |
 | `.vscode/settings.json` | VS Code [workspace settings](https://code.visualstudio.com/docs/configure/settings#_workspace-settings) (stop the R extension from starting the language server or prompting you to install it) |
 
 ## Records

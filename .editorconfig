@@ -20,6 +20,8 @@ trim_trailing_whitespace = false
 [*.{csv,csv2,csvy,tsv,psv,dat,fwf}]
 trim_trailing_whitespace = false
 
+# --- Formatting the project adds (keep it before the `[data/**]` section) (README.md "Contents") ---
+
 # --- Do not apply formatting rules to received data (README.md "Contents") ---
 [data/**]
 charset = unset
